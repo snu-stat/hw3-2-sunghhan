@@ -1,0 +1,82 @@
+name: Quarto Publish (R & Custom Packages)
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install numpy pandas matplotlib polars scipy statsmodels plotnine pybabynames pylahman
+          echo "RETICULATE_PYTHON=$(which python)" >> $GITHUB_ENV
+
+      - name: Set up R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - name: Set up Quarto
+        uses: quarto-dev/quarto-actions/setup@v2
+
+      - name: Install R Packages
+        env:
+          GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          options(repos = c(CRAN = Sys.getenv("RSPM", "https://cloud.r-project.org")))
+          install.packages(c("reticulate", "knitr", "rmarkdown"))
+          install.packages(c("tidyverse", "babynames", "mdsr", "Lahman", "NHANES", "patchwork", "broom", "mosaicData"))
+        shell: Rscript {0}
+
+      - name: Verify Python environment
+        run: |
+          echo "=== Python packages ==="
+          pip list | grep -E "matplotlib|polars|plotnine|numpy|pandas"
+          echo "=== matplotlib test ==="
+          python -c "import matplotlib; import matplotlib.pyplot; print('OK', matplotlib.__version__)"
+
+      - name: Prepare README as Index
+        run: cp README.md index.md
+
+      - name: Render Quarto
+        run: |
+          quarto render
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./_site
+          publish_branch: gh-pages
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/my-r-env:latest
