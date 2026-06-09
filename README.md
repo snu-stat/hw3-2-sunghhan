@@ -7,4 +7,4 @@
 
 * [분석 리포트 (HTML)](https://snu-stat.github.io/hw3-2-sunghhan/hw03.html)
 * [주피터 노트북 (ipynb)](https://github.com/snu-stat/hw3-2-sunghhan/blob/gh-pages/hw03.ipynb)
-* [Binder에서 노트북 열기](https://mybinder.org/v2/gh/snu-stat/hw3-2-sunghhan/gh-pages?urlpath=lab/tree/hw03.ipynb)
+* [주피터 노트북 (ipynb) (Binder)](https://mybinder.org/v2/gh/snu-stat/hw3-2-sunghhan/main?urlpath=lab/tree/hw03.ipynb)
